@@ -49,7 +49,7 @@
 <body>
 
     <header id="header-section">
-        <h1>📦 巴西 SKU 产品目录</h1>
+        <h1>📦 巴西 SKU 产品素材目录</h1>
         <input type="text" id="searchInput" class="search-bar" placeholder="🔍 输入 SKU 快速搜索..." oninput="filterSKUs()">
     </header>
 
@@ -104,11 +104,14 @@
         async function init() {
             const loading = document.getElementById('loading');
             try {
-                const url = `https://api.github.com/repos/${GITHUB_USER}/${REPO_NAME}/contents/public/products`;
+                const url = `https://api.github.com/repos/${GITHUB_USER}/${REPO_NAME}/contents`;
                 const response = await fetch(url);
                 const data = await response.json();
 
-                allSKUs = data.filter(item => item.type === 'dir').map(item => item.name);
+                allSKUs = data
+.filter(item => item.type === 'dir')
+.map(item => item.name)
+.sort((a,b)=>Number(a)-Number(b));
                 loading.style.display = 'none';
                 renderSKUList(allSKUs);
                 checkUrlHash();
@@ -131,10 +134,118 @@
                 const card = document.createElement('div');
                 card.className = 'sku-card';
                 // 自动寻找名为 1.jpg（或 1.png 等）的图片作为 200*200 封面
-                const coverUrl = `public/products/${sku}/1.jpg`;
+                // ===============================
+// 自动寻找SKU封面
+// 顺序:
+// 1.jpg
+// 1.png
+// cover.jpg
+// cover.png
+// ===============================
+
+
+async function findCover(sku){
+
+
+    const covers = [
+
+        "1.jpg",
+
+        "1.png",
+
+        "cover.jpg",
+
+        "cover.png"
+
+    ];
+
+
+
+    for(let file of covers){
+
+
+        let url = `${sku}/${file}`;
+
+
+
+        try{
+
+
+            let response = await fetch(url, {
+
+                method:"HEAD"
+
+            });
+
+
+
+            if(response.ok){
+
+
+                return url;
+
+
+            }
+
+
+
+        }catch(error){
+
+
+            console.log(
+                "检查失败:",
+                url
+            );
+
+
+        }
+
+
+    }
+
+
+
+    // 如果全部不存在
+
+    return "default-cover.jpg";
+
+
+}
+
+
+
+
+// ===============================
+// 显示SKU
+// ===============================
+
+async function showSKU(sku){
+
+
+
+    // 自动找封面
+
+    let coverUrl = await findCover(sku);
+
+
+
+    document.getElementById("cover")
+    .src = coverUrl;
+
+
+
+    // 显示SKU编号
+
+    document.getElementById("skuName")
+    .innerHTML = sku;
+
+
+
+}
+
                 
                 card.innerHTML = `
-                    <img src="${coverUrl}" onerror="this.src='public/products/${sku}/cover.jpg'" alt="${sku}">
+                    <img src="${coverUrl}" onerror="this.src=${sku}/cover.jpg'" alt="${sku}">
                     <div class="sku-info">SKU: ${sku}</div>
                 `;
                 card.onclick = () => loadSKUDetail(sku);
@@ -158,7 +269,7 @@
             document.getElementById('videoSection').style.display = 'none';
 
             try {
-                const url = `https://api.github.com/repos/${GITHUB_USER}/${REPO_NAME}/contents/public/products/${sku}`;
+                const url = `https://api.github.com/repos/${GITHUB_USER}/${REPO_NAME}/contents/${sku}`;
                 const response = await fetch(url);
                 const files = await response.json();
 
